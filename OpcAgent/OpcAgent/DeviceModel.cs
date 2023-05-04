@@ -16,5 +16,10 @@ namespace OpcAgent
         OpcReadNode goodCount;
         OpcReadNode badCount;
         OpcReadNode deviceError;
+
+        public DeviceModel()
+        {
+            
+        }
     }
 }
