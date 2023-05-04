@@ -1,9 +1,17 @@
 ﻿using Opc.UaFx;
 using Opc.UaFx.Client;
+using Microsoft.Azure.Devices.Client;
+string deviceConnectionString = "HostName=IoTZajecia2023.azure-devices.net;DeviceId=Device;SharedAccessKey=yogE0CsnCHhc99WJCxfHjYN9lmcugP1SpF4vQpAEKtM=";
 
-using (var client = new OpcClient("opc.tcp://localhost:4840/"))
-{
+    using var deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, TransportType.Mqtt);
+    await deviceClient.OpenAsync();
+
+    var client = new OpcClient("opc.tcp://localhost:4840/");
+    
+
+
     client.Connect();
+    Console.WriteLine("Connected to Opc server\n");
 
     OpcReadNode[] commands = new OpcReadNode[] {
     new OpcReadNode("ns=2;s=Device 1/ProductionStatus", OpcAttribute.DisplayName),
@@ -21,6 +29,8 @@ using (var client = new OpcClient("opc.tcp://localhost:4840/"))
     new OpcReadNode("ns=2;s=Device 1/DeviceError", OpcAttribute.NodeId),
     new OpcReadNode("ns=2;s=Device 1/DeviceError"),
 };
+ 
+
 
     IEnumerable<OpcValue> job = client.ReadNodes(commands);
 
@@ -28,4 +38,21 @@ using (var client = new OpcClient("opc.tcp://localhost:4840/"))
     {
         Console.WriteLine(item.Value);
     }
-}
+
+
+OpcReadNode[] telemetry = new OpcReadNode[]
+{
+    new OpcReadNode("ns=2;s=Device 1/ProductionStatus"),
+    new OpcReadNode("ns=2;s=Device 1/ProductionRate"),
+    new OpcReadNode("ns=2;s=Device 1/WorkorderId"),
+    new OpcReadNode("ns=2;s=Device 1/Temperature"),
+    new OpcReadNode("ns=2;s=Device 1/GoodCount"),
+    new OpcReadNode("ns=2;s=Device 1/BadCount"),
+};
+IEnumerable<OpcValue> telemetryData = client.ReadNodes(telemetry);
+var device = new Device(deviceClient, telemetryData);
+
+await device.SendTelemetryMessage();
+    client.Disconnect();
+    Console.ReadLine();
+
