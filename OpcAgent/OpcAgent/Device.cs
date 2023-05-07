@@ -1,4 +1,5 @@
 ﻿using Microsoft.Azure.Devices.Client;
+using Microsoft.Azure.Devices.Shared;
 using Newtonsoft.Json;
 using Opc.UaFx;
 using Opc.UaFx.Client;
@@ -18,20 +19,19 @@ public class Device
             this.telemetryData = telemetryData;
             this.client = client;
         }
-
-        public async Task SendTelemetryMessage()
+    #region Messages
+    public async Task SendTelemetryMessage()
         {
             Console.WriteLine($"Device production status:");
 
         var data = new
             {
-              wordOrderId = telemetryData.ElementAt(2).Value,
-              productionStatus = telemetryData.ElementAt(0).Value,
-              productionRate = telemetryData.ElementAt(1).Value,
-              goodCount = telemetryData.ElementAt(4).Value,
-             badCount = telemetryData.ElementAt(5).Value,
-            temperature = telemetryData.ElementAt(3).Value,
-        };
+                wordOrderId = telemetryData.ElementAt(0).Value,
+                productionStatus = telemetryData.ElementAt(1).Value,
+                goodCount = telemetryData.ElementAt(2).Value,
+                badCount = telemetryData.ElementAt(3).Value,
+                temperature = telemetryData.ElementAt(4).Value,
+            };
 
             var dataString = JsonConvert.SerializeObject(data);
 
@@ -41,8 +41,27 @@ public class Device
 
             await deviceClient.SendEventAsync(eventMessage);
         }
+    public async Task SendD2CEventMessage()
+    {
 
-        private async Task<MethodResponse> EmergencyStopHandler(MethodRequest methodRequest, object userContext)
+        var deviceError = new OpcReadNode("ns=2;s=Device 1/DeviceError");
+        var data = new
+        {
+            DeviceError = client.ReadNode(deviceError).Value
+        };
+        var dataString = JsonConvert.SerializeObject(data);
+
+        Message eventMessage = new Message(Encoding.UTF8.GetBytes(dataString));
+        eventMessage.ContentType = MediaTypeNames.Application.Json;
+        eventMessage.ContentEncoding = "utf-8";
+
+        Console.WriteLine($"An error occured in device 1\n");
+
+        await deviceClient.SendEventAsync(eventMessage);
+    }
+    #endregion
+    #region DirectMethods
+    private async Task<MethodResponse> EmergencyStopHandler(MethodRequest methodRequest, object userContext)
         {
         Console.WriteLine($"METHOD EXECUTED: {methodRequest.Name}");
 
@@ -75,12 +94,41 @@ public class Device
             client.CallMethod(method);
             throw new NotImplementedException();
         }
+    #endregion
+    #region DeviceTwin
+        public async Task UpdateTwinAsync()
+        {
+            var reportedProperties = new TwinCollection();
+            var deviceError = new OpcReadNode("ns=2;s=Device 1/DeviceError");
+            var productionRate = new OpcReadNode("ns=2;s=Device 1/ProductionRate");
+            reportedProperties["DeviceError"] = client.ReadNode(deviceError).Value;
+            reportedProperties["productionRate"] = client.ReadNode(productionRate).Value;
 
-        public async Task InitializeHandlers()
+            await deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
+        }
+        
+        public async Task OnDesiredPropertyChanged(TwinCollection desiredProperties, object _)
+        {
+            var twin = await deviceClient.GetTwinAsync();
+            Int32 productionRate = twin.Properties.Desired["ProductionRate"];
+            client.WriteNode("ns=2;s=Device 1/ProductionRate", productionRate);
+            await UpdateDesiredTwin();
+        }
+
+        private async Task UpdateDesiredTwin()
+        {
+            var reportedProperties = new TwinCollection();
+            var productionRate = client.ReadNode("ns=2;s=Device 1/ProductionRate");
+            reportedProperties["ProductionRate"] = productionRate.Value;
+            await deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
+        }
+    #endregion
+    public async Task InitializeHandlers()
         {
             await deviceClient.SetMethodDefaultHandlerAsync(DefaulServiceHandler, deviceClient);
             await deviceClient.SetMethodHandlerAsync("EmergencyStop", EmergencyStopHandler, deviceClient);
             await deviceClient.SetMethodHandlerAsync("ResetErrorStatus", ResetErrorStatusHandler, deviceClient);
+            await deviceClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertyChanged, deviceClient);
         }
 
 }

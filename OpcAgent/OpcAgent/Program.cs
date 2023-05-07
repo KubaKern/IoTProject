@@ -2,6 +2,7 @@
 using Opc.UaFx.Client;
 using Microsoft.Azure.Devices.Client;
 using Org.BouncyCastle.Security;
+using System.Net.Sockets;
 
 string deviceConnectionString = "HostName=IoTZajecia2023.azure-devices.net;DeviceId=Device;SharedAccessKey=yogE0CsnCHhc99WJCxfHjYN9lmcugP1SpF4vQpAEKtM=";
 
@@ -15,12 +16,11 @@ using (OpcClient client = new OpcClient("opc.tcp://localhost:4840/"))
 
     OpcReadNode[] telemetry = new OpcReadNode[]
     {
-        new OpcReadNode("ns=2;s=Device 1/ProductionStatus"),
-        new OpcReadNode("ns=2;s=Device 1/ProductionRate"),
         new OpcReadNode("ns=2;s=Device 1/WorkorderId"),
-        new OpcReadNode("ns=2;s=Device 1/Temperature"),
+        new OpcReadNode("ns=2;s=Device 1/ProductionStatus"),
         new OpcReadNode("ns=2;s=Device 1/GoodCount"),
         new OpcReadNode("ns=2;s=Device 1/BadCount"),
+        new OpcReadNode("ns=2;s=Device 1/Temperature"),
     };
     IEnumerable<OpcValue> telemetryData = client.ReadNodes(telemetry);
 
@@ -28,6 +28,33 @@ using (OpcClient client = new OpcClient("opc.tcp://localhost:4840/"))
 
     await device.InitializeHandlers();
     await device.SendTelemetryMessage();
+
+    async Task CallTwin(bool messageEvent)
+    {
+        await device.UpdateTwinAsync();
+        if (messageEvent)
+        {
+            await device.SendD2CEventMessage();
+        }
+    }
+    void DataChangeDeviceError(object sender, OpcDataChangeReceivedEventArgs e)
+    {
+        _ = CallTwin(true);
+    }
+
+    void DataChangeProductionRate(object sender, OpcDataChangeReceivedEventArgs e)
+    {
+        _ = CallTwin(false);
+    }
+
+    OpcSubscribeDataChange[] nodes = new OpcSubscribeDataChange[]
+    {
+        new OpcSubscribeDataChange("ns=2;s=Device 1/DeviceError",DataChangeDeviceError),
+        new OpcSubscribeDataChange("ns=2;s=Device 1/ProductionRate",DataChangeProductionRate),
+    };
+    OpcSubscription subscription = client.SubscribeNodes(nodes);
+    subscription.PublishingInterval = 1000; 
+    subscription.ApplyChanges(); 
 
     Console.ReadLine();
 }
