@@ -10,27 +10,29 @@ using System.Text;
 public class Device
     {
         private readonly DeviceClient deviceClient;
-        private IEnumerable<OpcValue> telemetryData;
+        string monitoredDevice;
         private readonly OpcClient client;
-
-        public Device(DeviceClient deviceClient, IEnumerable<OpcValue> telemetryData, OpcClient client)
+        private string deviceName;
+        public Device(DeviceClient deviceClient, string monitoredDevice, OpcClient client)
         {
             this.deviceClient = deviceClient;
-            this.telemetryData = telemetryData;
+            this.monitoredDevice = monitoredDevice;
             this.client = client;
-        }
+            this.deviceName = $"Device {monitoredDevice}";
+    }
     #region Messages
-    public async Task SendTelemetryMessage()
+    public async Task SendTelemetryMessage(IEnumerable<OpcValue> telemetryData)
         {
             Console.WriteLine($"Device production status:");
-
-        var data = new
+        
+            var data = new
             {
-                wordOrderId = telemetryData.ElementAt(0).Value,
-                productionStatus = telemetryData.ElementAt(1).Value,
-                goodCount = telemetryData.ElementAt(2).Value,
-                badCount = telemetryData.ElementAt(3).Value,
-                temperature = telemetryData.ElementAt(4).Value,
+                DeviceName = deviceName,
+                WordOrderId = telemetryData.ElementAt(0).Value,
+                ProductionStatus = telemetryData.ElementAt(1).Value,
+                GoodCount = telemetryData.ElementAt(2).Value,
+                BadCount = telemetryData.ElementAt(3).Value,
+                Temperature = telemetryData.ElementAt(4).Value,
             };
 
             var dataString = JsonConvert.SerializeObject(data);
@@ -44,9 +46,10 @@ public class Device
     public async Task SendD2CEventMessage()
     {
 
-        var deviceError = new OpcReadNode("ns=2;s=Device 1/DeviceError");
+        var deviceError = new OpcReadNode($"ns=2;s=Device {monitoredDevice}/DeviceError");
         var data = new
         {
+            DeviceName = deviceName,
             DeviceError = client.ReadNode(deviceError).Value
         };
         var dataString = JsonConvert.SerializeObject(data);
@@ -55,7 +58,7 @@ public class Device
         eventMessage.ContentType = MediaTypeNames.Application.Json;
         eventMessage.ContentEncoding = "utf-8";
 
-        Console.WriteLine($"An error occured in device 1\n");
+        Console.WriteLine($"An error occured in device {monitoredDevice}\n");
 
         await deviceClient.SendEventAsync(eventMessage);
     }
@@ -84,13 +87,13 @@ public class Device
         }
         private Task CallEmergencyStop()
         {
-            var method = new OpcCallMethod("ns=2;s=Device 1", "ns=2;s=Device 1/EmergencyStop");
+            var method = new OpcCallMethod($"ns=2;s=Device {monitoredDevice}", $"ns=2;s=Device {monitoredDevice}/EmergencyStop");
             client.CallMethod(method);
             throw new NotImplementedException();
         }
         private Task CallResetErrorStatus()
         {
-            var method = new OpcCallMethod("ns=2;s=Device 1", "ns=2;s=Device 1/ResetErrorStatus");
+            var method = new OpcCallMethod($"ns=2;s=Device {monitoredDevice}", $"ns=2;s=Device {monitoredDevice}/ResetErrorStatus");
             client.CallMethod(method);
             throw new NotImplementedException();
         }
@@ -99,8 +102,8 @@ public class Device
         public async Task UpdateTwinAsync()
         {
             var reportedProperties = new TwinCollection();
-            var deviceError = new OpcReadNode("ns=2;s=Device 1/DeviceError");
-            var productionRate = new OpcReadNode("ns=2;s=Device 1/ProductionRate");
+            var deviceError = new OpcReadNode($"ns=2;s=Device {monitoredDevice}/DeviceError");
+            var productionRate = new OpcReadNode($"ns=2;s=Device {monitoredDevice}/ProductionRate");
             reportedProperties["DeviceError"] = client.ReadNode(deviceError).Value;
             reportedProperties["productionRate"] = client.ReadNode(productionRate).Value;
 
@@ -111,14 +114,14 @@ public class Device
         {
             var twin = await deviceClient.GetTwinAsync();
             Int32 productionRate = twin.Properties.Desired["ProductionRate"];
-            client.WriteNode("ns=2;s=Device 1/ProductionRate", productionRate);
+            client.WriteNode($"ns=2;s=Device {monitoredDevice}/ProductionRate", productionRate);
             await UpdateDesiredTwin();
         }
 
         private async Task UpdateDesiredTwin()
         {
             var reportedProperties = new TwinCollection();
-            var productionRate = client.ReadNode("ns=2;s=Device 1/ProductionRate");
+            var productionRate = client.ReadNode($"ns=2;s=Device {monitoredDevice}/ProductionRate");
             reportedProperties["ProductionRate"] = productionRate.Value;
             await deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
         }
