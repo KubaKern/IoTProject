@@ -4,8 +4,12 @@ using Microsoft.Azure.Devices.Client;
 using Org.BouncyCastle.Security;
 using System.Net.Sockets;
 
-string deviceConnectionString = "HostName=IoTZajecia2023.azure-devices.net;DeviceId=Device;SharedAccessKey=yogE0CsnCHhc99WJCxfHjYN9lmcugP1SpF4vQpAEKtM=";
+string deviceConnectionString;
 int delayInMs = 5000;
+
+Console.WriteLine("Enter device connection string...");
+deviceConnectionString = Console.ReadLine();
+
 using var deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, TransportType.Mqtt);
 await deviceClient.OpenAsync();
 
@@ -24,7 +28,7 @@ using (OpcClient client = new OpcClient("opc.tcp://localhost:4840/"))
     Console.WriteLine("\nSelect device you want to monitor by entering the device number:\n");
     String monitoredDevice = Console.ReadLine();
 
-    OpcReadNode[] telemetry = new OpcReadNode[]
+    OpcReadNode[] telemetryData = new OpcReadNode[]
     {
         new OpcReadNode($"ns=2;s=Device {monitoredDevice}/WorkorderId"),
         new OpcReadNode($"ns=2;s=Device {monitoredDevice}/ProductionStatus"),
@@ -32,7 +36,6 @@ using (OpcClient client = new OpcClient("opc.tcp://localhost:4840/"))
         new OpcReadNode($"ns=2;s=Device {monitoredDevice}/BadCount"),
         new OpcReadNode($"ns=2;s=Device {monitoredDevice}/Temperature"),
     };
-    IEnumerable<OpcValue> telemetryData = client.ReadNodes(telemetry);
 
     var device = new Device(deviceClient, monitoredDevice, client);
 

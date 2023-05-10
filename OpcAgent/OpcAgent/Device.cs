@@ -21,19 +21,26 @@ public class Device
             this.deviceName = $"Device {monitoredDevice}";
     }
     #region Messages
-    public async Task SendTelemetryMessage(IEnumerable<OpcValue> telemetryDatan, int delayInMs)
+    public async Task SendTelemetryMessage(OpcReadNode[] telemetryData, int delayInMs)
         {
             Console.WriteLine($"Sending telemetry data to Iot Hub");
             while (true)
-            { 
+            {
+
+            var job = client.ReadNodes(telemetryData);
+            List<object> listOfNodes = new List<object>();
+            foreach(var item in job)
+            {
+                listOfNodes.Add(item.Value);
+            }
                 var data = new
                 {
                     DeviceName = deviceName,
-                    WordOrderId = telemetryData.ElementAt(0).Value,
-                    ProductionStatus = telemetryData.ElementAt(1).Value,
-                    GoodCount = telemetryData.ElementAt(2).Value,
-                    BadCount = telemetryData.ElementAt(3).Value,
-                    Temperature = telemetryData.ElementAt(4).Value,
+                    ProductionStatus = listOfNodes[0],
+                    WorkorderId = listOfNodes[1],
+                    GoodCount = listOfNodes[2],
+                    BadCount = listOfNodes[3],
+                    Temperature = listOfNodes[4]
                 };
 
                 var dataString = JsonConvert.SerializeObject(data);
