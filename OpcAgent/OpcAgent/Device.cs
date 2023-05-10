@@ -23,29 +23,31 @@ public class Device
     #region Messages
     public async Task SendTelemetryMessage(IEnumerable<OpcValue> telemetryData)
         {
-            Console.WriteLine($"Device production status:");
-        
-            var data = new
-            {
-                DeviceName = deviceName,
-                WordOrderId = telemetryData.ElementAt(0).Value,
-                ProductionStatus = telemetryData.ElementAt(1).Value,
-                GoodCount = telemetryData.ElementAt(2).Value,
-                BadCount = telemetryData.ElementAt(3).Value,
-                Temperature = telemetryData.ElementAt(4).Value,
-            };
+            Console.WriteLine($"Sending telemetry data to Iot Hub");
+            while (true)
+            { 
+                var data = new
+                {
+                    DeviceName = deviceName,
+                    WordOrderId = telemetryData.ElementAt(0).Value,
+                    ProductionStatus = telemetryData.ElementAt(1).Value,
+                    GoodCount = telemetryData.ElementAt(2).Value,
+                    BadCount = telemetryData.ElementAt(3).Value,
+                    Temperature = telemetryData.ElementAt(4).Value,
+                };
 
-            var dataString = JsonConvert.SerializeObject(data);
+                var dataString = JsonConvert.SerializeObject(data);
 
-            Message eventMessage = new Message(Encoding.UTF8.GetBytes(dataString));
-            eventMessage.ContentType = MediaTypeNames.Application.Json;
-            eventMessage.ContentEncoding = "utf-8";
-
-            await deviceClient.SendEventAsync(eventMessage);
-        }
+                Message eventMessage = new Message(Encoding.UTF8.GetBytes(dataString));
+                eventMessage.ContentType = MediaTypeNames.Application.Json;
+                eventMessage.ContentEncoding = "utf-8";
+                eventMessage.Properties.Add("MessageType", "Telemetry");
+                await deviceClient.SendEventAsync(eventMessage);
+            }
+    }
     public async Task SendD2CEventMessage()
     {
-
+        Console.WriteLine($"An error occured in device {monitoredDevice}\n");
         var deviceError = new OpcReadNode($"ns=2;s=Device {monitoredDevice}/DeviceError");
         var data = new
         {
@@ -57,8 +59,8 @@ public class Device
         Message eventMessage = new Message(Encoding.UTF8.GetBytes(dataString));
         eventMessage.ContentType = MediaTypeNames.Application.Json;
         eventMessage.ContentEncoding = "utf-8";
-
-        Console.WriteLine($"An error occured in device {monitoredDevice}\n");
+        eventMessage.Properties.Add("MessageType", "Event");
+        
 
         await deviceClient.SendEventAsync(eventMessage);
     }
