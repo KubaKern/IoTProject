@@ -21,7 +21,7 @@ public class Device
             this.deviceName = $"Device {monitoredDevice}";
     }
     #region Messages
-    public async Task SendTelemetryMessage(IEnumerable<OpcValue> telemetryData)
+    public async Task SendTelemetryMessage(IEnumerable<OpcValue> telemetryDatan, int delayInMs)
         {
             Console.WriteLine($"Sending telemetry data to Iot Hub");
             while (true)
@@ -43,6 +43,7 @@ public class Device
                 eventMessage.ContentEncoding = "utf-8";
                 eventMessage.Properties.Add("MessageType", "Telemetry");
                 await deviceClient.SendEventAsync(eventMessage);
+            await Task.Delay(delayInMs);
             }
     }
     public async Task SendD2CEventMessage()

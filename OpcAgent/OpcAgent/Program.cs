@@ -5,9 +5,9 @@ using Org.BouncyCastle.Security;
 using System.Net.Sockets;
 
 string deviceConnectionString = "HostName=IoTZajecia2023.azure-devices.net;DeviceId=Device;SharedAccessKey=yogE0CsnCHhc99WJCxfHjYN9lmcugP1SpF4vQpAEKtM=";
-
-    using var deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, TransportType.Mqtt);
-    await deviceClient.OpenAsync();
+int delayInMs = 5000;
+using var deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, TransportType.Mqtt);
+await deviceClient.OpenAsync();
 
 using (OpcClient client = new OpcClient("opc.tcp://localhost:4840/"))
 {
@@ -37,7 +37,7 @@ using (OpcClient client = new OpcClient("opc.tcp://localhost:4840/"))
     var device = new Device(deviceClient, monitoredDevice, client);
 
     await device.InitializeHandlers();
-    await device.SendTelemetryMessage(telemetryData);
+    await device.SendTelemetryMessage(telemetryData, delayInMs);
 
     async Task CallTwin(bool messageEvent)
     {
