@@ -132,6 +132,7 @@ using (OpcClient client = new OpcClient(opcServerAddress))
     {
         Console.WriteLine("\nConnection to server failed. Make sure your server is online. More details below:\n");
         Console.WriteLine(ex.ToString());
+        Console.ReadLine();
     }
 }
 

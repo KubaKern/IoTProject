@@ -1,0 +1,26 @@
+{
+    "name": "azure-iot-classes-stream",
+    "startFile": "Transformation.asaql",
+    "configurations": [
+        {
+            "filePath": "JobConfig.json",
+            "subType": "JobConfig"
+        },
+        {
+            "filePath": "Outputs/DeviceErrors.json",
+            "subType": "Output"
+        },
+        {
+            "filePath": "Outputs/ProductionKpi.json",
+            "subType": "Output"
+        },
+        {
+            "filePath": "Outputs/Temperature.json",
+            "subType": "Output"
+        },
+        {
+            "filePath": "Inputs/IotHubInput.json",
+            "subType": "Input"
+        }
+    ]
+}

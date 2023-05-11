@@ -1,0 +1,24 @@
+SELECT
+    System.Timestamp() as TIME,
+     DeviceName, MAX(GoodCount) / (MAX(GoodCount) + MAX(BadCount)) AS KPI
+INTO
+    [ProductionKpi]
+FROM
+    [IotHubInput] Timestamp By IoTHub.EnqueuedTime
+GROUP BY DeviceName, TumblingWindow(minute,5)
+
+SELECT
+    System.Timestamp() as TIME, AVG(Temperature) AS AverageTemperature, MIN(Temperature) AS MinimumTemperature, MAX(Temperature) AS MaximumTemperature
+    INTO
+    [Temperature]
+FROM
+    [IotHubInput] Timestamp By IoTHub.EnqueuedTime
+GROUP BY DeviceName, HoppingWindow(minute,5,1)
+
+SELECT 
+    System.Timestamp as TIME, DeviceName, COUNT(DeviceError)
+    INTO [DeviceErrors]
+    FROM [IotHubInput]
+    WHERE DeviceError != 0
+    GROUP BY DeviceName, SlidingWindow(minute,1)
+    HAVING COUNT(DeviceError) > 3
