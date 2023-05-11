@@ -1,0 +1,2 @@
+Device 1,HostName=IoTZajecia2023.azure-devices.net;DeviceId=Device;SharedAccessKey=yogE0CsnCHhc99WJCxfHjYN9lmcugP1SpF4vQpAEKtM=
+Device 2,HostName=IoTZajecia2023.azure-devices.net;DeviceId=Device2;SharedAccessKey=9O+GPNdU3Aj2eHyfaC45Blm7S/VEB9LERFsVYjRGCnI=
